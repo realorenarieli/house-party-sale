@@ -149,6 +149,9 @@ function setupEventListeners() {
 
 // Add Item
 function addItem() {
+  const imagesJson = document.getElementById('itemImages').value;
+  const images = imagesJson ? JSON.parse(imagesJson) : [];
+
   const newItem = {
     id: Date.now(),
     name: document.getElementById('itemName').value,
@@ -156,7 +159,7 @@ function addItem() {
     price: parseInt(document.getElementById('itemPrice').value),
     category: document.getElementById('itemCategory').value,
     condition: document.getElementById('itemCondition').value,
-    image: document.getElementById('itemImage').value,
+    images: images,
     sold: false,
     interest: 0
   };
@@ -167,8 +170,8 @@ function addItem() {
 
   // Clear form
   document.getElementById('addItemForm').reset();
-  document.getElementById('itemImage').value = '';
-  document.getElementById('itemImagePreview').innerHTML = '';
+  document.getElementById('itemImages').value = '';
+  document.getElementById('itemImagesPreview').innerHTML = '';
   alert('הפריט נוסף בהצלחה! ✅');
 }
 
@@ -206,15 +209,18 @@ function editItem(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
 
+  // Handle legacy items with single image
+  const images = item.images || (item.image ? [item.image] : []);
+
   document.getElementById('editItemId').value = id;
   document.getElementById('editName').value = item.name;
   document.getElementById('editDescription').value = item.description;
   document.getElementById('editPrice').value = item.price;
   document.getElementById('editCategory').value = item.category;
   document.getElementById('editCondition').value = item.condition;
-  document.getElementById('editImage').value = item.image || '';
-  document.getElementById('editImageFile').value = '';
-  showImagePreview(item.image, 'editImagePreview');
+  document.getElementById('editImages').value = JSON.stringify(images);
+  document.getElementById('editImageFiles').value = '';
+  showImagesPreview(images, 'editImagesPreview');
 
   document.getElementById('editModal').style.display = 'flex';
 }
@@ -224,12 +230,16 @@ function saveEditedItem() {
   const item = items.find(i => i.id === id);
   if (!item) return;
 
+  const imagesJson = document.getElementById('editImages').value;
+  const images = imagesJson ? JSON.parse(imagesJson) : [];
+
   item.name = document.getElementById('editName').value;
   item.description = document.getElementById('editDescription').value;
   item.price = parseInt(document.getElementById('editPrice').value);
   item.category = document.getElementById('editCategory').value;
   item.condition = document.getElementById('editCondition').value;
-  item.image = document.getElementById('editImage').value;
+  item.images = images;
+  delete item.image; // Remove legacy field
 
   saveData();
   renderItemsTable();
@@ -334,42 +344,92 @@ function escapeHtml(text) {
 
 // Setup Image Uploads
 function setupImageUploads() {
-  // Add item image upload
-  document.getElementById('itemImageFile').addEventListener('change', (e) => {
-    handleImageUpload(e.target.files[0], 'itemImage', 'itemImagePreview');
+  // Add item images upload
+  document.getElementById('itemImageFiles').addEventListener('change', (e) => {
+    handleMultipleImageUpload(e.target.files, 'itemImages', 'itemImagesPreview');
   });
 
-  // Edit item image upload
-  document.getElementById('editImageFile').addEventListener('change', (e) => {
-    handleImageUpload(e.target.files[0], 'editImage', 'editImagePreview');
+  // Edit item images upload
+  document.getElementById('editImageFiles').addEventListener('change', (e) => {
+    handleMultipleImageUpload(e.target.files, 'editImages', 'editImagesPreview', true);
   });
 }
 
-// Handle image upload and convert to base64
-function handleImageUpload(file, inputId, previewId) {
-  if (!file) return;
+// Handle multiple image uploads and convert to base64
+function handleMultipleImageUpload(files, inputId, previewId, appendToExisting = false) {
+  if (!files || files.length === 0) return;
 
-  // Check file size (max 500KB for base64)
-  if (file.size > 500 * 1024) {
-    alert('התמונה גדולה מדי! מקסימום 500KB');
+  // Get existing images if appending
+  let existingImages = [];
+  if (appendToExisting) {
+    const existing = document.getElementById(inputId).value;
+    if (existing) {
+      try {
+        existingImages = JSON.parse(existing);
+      } catch (e) {
+        existingImages = [];
+      }
+    }
+  }
+
+  // Check total count
+  if (existingImages.length + files.length > 5) {
+    alert('מקסימום 5 תמונות לפריט!');
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const base64 = e.target.result;
-    document.getElementById(inputId).value = base64;
-    document.getElementById(previewId).innerHTML = `<img src="${base64}" alt="preview" style="max-width: 200px; max-height: 150px; border-radius: 8px;">`;
-  };
-  reader.readAsDataURL(file);
+  const promises = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+
+    // Check file size (max 500KB for base64)
+    if (file.size > 500 * 1024) {
+      alert(`התמונה "${file.name}" גדולה מדי! מקסימום 500KB`);
+      continue;
+    }
+
+    promises.push(new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    }));
+  }
+
+  Promise.all(promises).then(newImages => {
+    const allImages = [...existingImages, ...newImages].slice(0, 5);
+    document.getElementById(inputId).value = JSON.stringify(allImages);
+    showImagesPreview(allImages, previewId);
+  });
 }
 
-// Show image preview
-function showImagePreview(imageData, previewId) {
+// Show multiple images preview
+function showImagesPreview(images, previewId) {
   const preview = document.getElementById(previewId);
-  if (imageData) {
-    preview.innerHTML = `<img src="${imageData}" alt="preview" style="max-width: 200px; max-height: 150px; border-radius: 8px;">`;
+  if (images && images.length > 0) {
+    preview.innerHTML = images.map((img, index) => `
+      <div class="preview-image-wrapper">
+        <img src="${img}" alt="preview ${index + 1}">
+        <button type="button" class="remove-image-btn" onclick="removeImage('${previewId}', ${index})">✕</button>
+      </div>
+    `).join('');
   } else {
-    preview.innerHTML = '';
+    preview.innerHTML = '<p style="color: var(--gray); font-size: 0.9rem;">אין תמונות</p>';
+  }
+}
+
+// Remove image from preview
+function removeImage(previewId, index) {
+  const inputId = previewId.replace('Preview', '');
+  const existing = document.getElementById(inputId).value;
+  if (!existing) return;
+
+  try {
+    const images = JSON.parse(existing);
+    images.splice(index, 1);
+    document.getElementById(inputId).value = JSON.stringify(images);
+    showImagesPreview(images, previewId);
+  } catch (e) {
+    console.error('Error removing image:', e);
   }
 }

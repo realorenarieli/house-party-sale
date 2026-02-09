@@ -127,13 +127,34 @@ function renderItemCard(item) {
   const category = CATEGORIES[item.category] || CATEGORIES.other;
   const condition = CONDITIONS[item.condition] || item.condition;
 
-  const imageHtml = item.image
-    ? `<img src="${item.image}" alt="${item.name}" class="item-image" onerror="this.outerHTML='<div class=\\'item-image-placeholder\\'>${category.icon}</div>'">`
-    : `<div class="item-image-placeholder">${category.icon}</div>`;
+  // Handle both new images array and legacy single image
+  const images = item.images || (item.image ? [item.image] : []);
+
+  let galleryHtml;
+  if (images.length > 0) {
+    galleryHtml = `
+      <div class="item-gallery" data-item-id="${item.id}">
+        <div class="gallery-images">
+          ${images.map((img, index) => `
+            <img src="${img}" alt="${item.name}" class="gallery-image ${index === 0 ? 'active' : ''}" data-index="${index}" onerror="this.style.display='none'">
+          `).join('')}
+        </div>
+        ${images.length > 1 ? `
+          <button class="gallery-nav gallery-prev" onclick="navigateGallery(${item.id}, -1)">‹</button>
+          <button class="gallery-nav gallery-next" onclick="navigateGallery(${item.id}, 1)">›</button>
+          <div class="gallery-dots">
+            ${images.map((_, index) => `<span class="gallery-dot ${index === 0 ? 'active' : ''}" onclick="goToSlide(${item.id}, ${index})"></span>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } else {
+    galleryHtml = `<div class="item-image-placeholder">${category.icon}</div>`;
+  }
 
   return `
     <article class="item-card ${item.sold ? 'sold' : ''}">
-      ${imageHtml}
+      ${galleryHtml}
       <div class="item-content">
         <span class="item-category">${category.icon} ${category.name}</span>
         <h3 class="item-name">${escapeHtml(item.name)}</h3>
@@ -147,6 +168,41 @@ function renderItemCard(item) {
       ${item.interest > 0 ? `<div class="interest-counter">👀 ${item.interest} מתעניינים</div>` : ''}
     </article>
   `;
+}
+
+// Gallery navigation
+function navigateGallery(itemId, direction) {
+  const gallery = document.querySelector(`.item-gallery[data-item-id="${itemId}"]`);
+  if (!gallery) return;
+
+  const images = gallery.querySelectorAll('.gallery-image');
+  const dots = gallery.querySelectorAll('.gallery-dot');
+  const activeImage = gallery.querySelector('.gallery-image.active');
+  const currentIndex = parseInt(activeImage.dataset.index);
+
+  let newIndex = currentIndex + direction;
+  if (newIndex < 0) newIndex = images.length - 1;
+  if (newIndex >= images.length) newIndex = 0;
+
+  images.forEach(img => img.classList.remove('active'));
+  dots.forEach(dot => dot.classList.remove('active'));
+
+  images[newIndex].classList.add('active');
+  if (dots[newIndex]) dots[newIndex].classList.add('active');
+}
+
+function goToSlide(itemId, index) {
+  const gallery = document.querySelector(`.item-gallery[data-item-id="${itemId}"]`);
+  if (!gallery) return;
+
+  const images = gallery.querySelectorAll('.gallery-image');
+  const dots = gallery.querySelectorAll('.gallery-dot');
+
+  images.forEach(img => img.classList.remove('active'));
+  dots.forEach(dot => dot.classList.remove('active'));
+
+  images[index].classList.add('active');
+  if (dots[index]) dots[index].classList.add('active');
 }
 
 // Reserve item - open WhatsApp

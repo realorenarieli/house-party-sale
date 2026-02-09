@@ -84,11 +84,11 @@
             </select>
           </div>
           <div class="form-group">
-            <label>תמונה (אופציונלי):</label>
+            <label>תמונות (עד 5 תמונות, מקסימום 500KB כל אחת):</label>
             <div class="image-upload-container">
-              <input type="file" id="itemImageFile" accept="image/*" style="margin-bottom: 8px;">
-              <div id="itemImagePreview" class="image-preview"></div>
-              <input type="hidden" id="itemImage">
+              <input type="file" id="itemImageFiles" accept="image/*" multiple style="margin-bottom: 8px;">
+              <div id="itemImagesPreview" class="images-preview"></div>
+              <input type="hidden" id="itemImages">
             </div>
           </div>
           <button type="submit" class="btn btn-primary">➕ הוסף פריט</button>
@@ -169,11 +169,11 @@
           </select>
         </div>
         <div class="form-group">
-          <label>תמונה:</label>
+          <label>תמונות (עד 5 תמונות):</label>
           <div class="image-upload-container">
-            <input type="file" id="editImageFile" accept="image/*" style="margin-bottom: 8px;">
-            <div id="editImagePreview" class="image-preview"></div>
-            <input type="hidden" id="editImage">
+            <input type="file" id="editImageFiles" accept="image/*" multiple style="margin-bottom: 8px;">
+            <div id="editImagesPreview" class="images-preview"></div>
+            <input type="hidden" id="editImages">
           </div>
         </div>
         <div style="display: flex; gap: 10px; margin-top: 20px;">
