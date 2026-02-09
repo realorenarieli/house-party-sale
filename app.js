@@ -14,11 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
   updatePartyInfo();
 });
 
-// Load items from the data file (SAMPLE_ITEMS is the source of truth for public site)
+// Load items from localStorage or use default data
 function loadData() {
-  // Always load from SAMPLE_ITEMS - this is the deployed data
-  // localStorage is only used by admin for editing before export
-  items = [...SAMPLE_ITEMS];
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    items = JSON.parse(stored);
+  } else {
+    items = [...SAMPLE_ITEMS];
+    if (items.length > 0) {
+      saveData();
+    }
+  }
 }
 
 // Save items to localStorage
