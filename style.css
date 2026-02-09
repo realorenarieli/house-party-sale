@@ -483,6 +483,23 @@ body {
   flex-wrap: wrap;
 }
 
+/* Image Upload */
+.image-upload-container {
+  border: 2px dashed var(--gray);
+  padding: 15px;
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.image-preview {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.image-preview img {
+  border: 2px solid var(--black);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .header h1 {

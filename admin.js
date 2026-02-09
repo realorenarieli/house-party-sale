@@ -54,6 +54,7 @@ function authenticate() {
   populateSettingsForm();
   renderItemsTable();
   setupEventListeners();
+  setupImageUploads();
 }
 
 // Load/Save Data
@@ -166,6 +167,8 @@ function addItem() {
 
   // Clear form
   document.getElementById('addItemForm').reset();
+  document.getElementById('itemImage').value = '';
+  document.getElementById('itemImagePreview').innerHTML = '';
   alert('הפריט נוסף בהצלחה! ✅');
 }
 
@@ -210,6 +213,8 @@ function editItem(id) {
   document.getElementById('editCategory').value = item.category;
   document.getElementById('editCondition').value = item.condition;
   document.getElementById('editImage').value = item.image || '';
+  document.getElementById('editImageFile').value = '';
+  showImagePreview(item.image, 'editImagePreview');
 
   document.getElementById('editModal').style.display = 'flex';
 }
@@ -325,4 +330,46 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Setup Image Uploads
+function setupImageUploads() {
+  // Add item image upload
+  document.getElementById('itemImageFile').addEventListener('change', (e) => {
+    handleImageUpload(e.target.files[0], 'itemImage', 'itemImagePreview');
+  });
+
+  // Edit item image upload
+  document.getElementById('editImageFile').addEventListener('change', (e) => {
+    handleImageUpload(e.target.files[0], 'editImage', 'editImagePreview');
+  });
+}
+
+// Handle image upload and convert to base64
+function handleImageUpload(file, inputId, previewId) {
+  if (!file) return;
+
+  // Check file size (max 500KB for base64)
+  if (file.size > 500 * 1024) {
+    alert('התמונה גדולה מדי! מקסימום 500KB');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result;
+    document.getElementById(inputId).value = base64;
+    document.getElementById(previewId).innerHTML = `<img src="${base64}" alt="preview" style="max-width: 200px; max-height: 150px; border-radius: 8px;">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Show image preview
+function showImagePreview(imageData, previewId) {
+  const preview = document.getElementById(previewId);
+  if (imageData) {
+    preview.innerHTML = `<img src="${imageData}" alt="preview" style="max-width: 200px; max-height: 150px; border-radius: 8px;">`;
+  } else {
+    preview.innerHTML = '';
+  }
 }
