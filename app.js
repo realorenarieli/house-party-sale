@@ -7,39 +7,29 @@ let currentFilter = 'all';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-  loadData();
-  loadSettings();
-  renderFilters();
-  renderItems();
-  updatePartyInfo();
+  initApp();
 });
 
-// Load items from localStorage or use default data
-function loadData() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    items = JSON.parse(stored);
-  } else {
-    items = [...SAMPLE_ITEMS];
-    if (items.length > 0) {
-      saveData();
-    }
-  }
-}
+// Initialize app - fetch data from JSON file
+async function initApp() {
+  try {
+    const response = await fetch('items.json?' + Date.now()); // Cache bust
+    const data = await response.json();
 
-// Save items to localStorage
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-}
+    items = data.items || [];
+    settings = data.settings || DEFAULT_SETTINGS;
 
-// Load settings
-function loadSettings() {
-  const stored = localStorage.getItem(SETTINGS_KEY);
-  if (stored) {
-    settings = { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-  } else {
-    settings = { ...DEFAULT_SETTINGS };
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    renderFilters();
+    renderItems();
+    updatePartyInfo();
+  } catch (error) {
+    console.error('Error loading data:', error);
+    // Fallback to defaults
+    items = [];
+    settings = DEFAULT_SETTINGS;
+    renderFilters();
+    renderItems();
+    updatePartyInfo();
   }
 }
 
@@ -165,7 +155,6 @@ function renderItemCard(item) {
       <button class="reserve-btn" data-item-id="${item.id}" ${item.sold ? 'disabled' : ''}>
         ${item.sold ? 'נמכר' : 'שריין עכשיו!'}
       </button>
-      ${item.interest > 0 ? `<div class="interest-counter">👀 ${item.interest} מתעניינים</div>` : ''}
     </article>
   `;
 }
@@ -209,11 +198,6 @@ function goToSlide(itemId, index) {
 function reserveItem(itemId) {
   const item = items.find(i => i.id === itemId);
   if (!item || item.sold) return;
-
-  // Increment interest counter
-  item.interest = (item.interest || 0) + 1;
-  saveData();
-  renderItems();
 
   // Create WhatsApp message
   const message = encodeURIComponent(
