@@ -17,9 +17,6 @@ function setupPasswordProtection() {
   const input = document.getElementById('passwordInput');
   const submit = document.getElementById('passwordSubmit');
 
-  // Load settings to get password
-  loadSettings();
-
   // Check if already authenticated this session
   if (sessionStorage.getItem('adminAuth') === 'true') {
     authenticate();
@@ -34,7 +31,8 @@ function setupPasswordProtection() {
 
 function checkPassword() {
   const input = document.getElementById('passwordInput');
-  if (input.value === settings.adminPassword) {
+  // Simple password check - in production use proper auth
+  if (input.value === 'sale2026') {
     sessionStorage.setItem('adminAuth', 'true');
     authenticate();
   } else {
@@ -44,46 +42,40 @@ function checkPassword() {
   }
 }
 
-function authenticate() {
+async function authenticate() {
   isAuthenticated = true;
   document.getElementById('passwordModal').style.display = 'none';
   document.getElementById('adminContent').style.display = 'block';
 
-  loadData();
-  loadSettings();
+  await loadData();
   populateSettingsForm();
   renderItemsTable();
   setupEventListeners();
   setupImageUploads();
 }
 
-// Load/Save Data
-function loadData() {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    items = JSON.parse(stored);
-  } else {
-    items = [...SAMPLE_ITEMS];
-    saveData();
+// Load data from JSON file
+async function loadData() {
+  try {
+    const response = await fetch('items.json?' + Date.now());
+    const data = await response.json();
+    items = data.items || [];
+    settings = data.settings || {
+      whatsappNumber: '972527251714',
+      partyDate: '20.02.2026',
+      partyTime: 'החל מ-15:00',
+      partyAddress: 'רחוב ג׳ורג׳ אליוט, קומה 3 דירה 3, תל אביב'
+    };
+  } catch (error) {
+    console.error('Error loading data:', error);
+    items = [];
+    settings = {
+      whatsappNumber: '972527251714',
+      partyDate: '20.02.2026',
+      partyTime: 'החל מ-15:00',
+      partyAddress: 'רחוב ג׳ורג׳ אליוט, קומה 3 דירה 3, תל אביב'
+    };
   }
-}
-
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-}
-
-function loadSettings() {
-  const stored = localStorage.getItem(SETTINGS_KEY);
-  if (stored) {
-    settings = { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-  } else {
-    settings = { ...DEFAULT_SETTINGS };
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  }
-}
-
-function saveSettings() {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
 // Populate category dropdowns
@@ -115,8 +107,7 @@ function setupEventListeners() {
     settings.partyDate = document.getElementById('settingDate').value;
     settings.partyTime = document.getElementById('settingTime').value;
     settings.partyAddress = document.getElementById('settingAddress').value;
-    saveSettings();
-    alert('ההגדרות נשמרו! ✅');
+    alert('ההגדרות עודכנו! לחץ על "ייצא JSON" כדי לשמור.');
   });
 
   // Add item form
@@ -128,15 +119,8 @@ function setupEventListeners() {
   // Export button
   document.getElementById('exportBtn').addEventListener('click', exportData);
 
-  // Import button
-  document.getElementById('importBtn').addEventListener('click', () => {
-    document.getElementById('importFile').click();
-  });
-
-  document.getElementById('importFile').addEventListener('change', importData);
-
-  // Reset button
-  document.getElementById('resetBtn').addEventListener('click', resetData);
+  // Copy JSON button
+  document.getElementById('copyJsonBtn').addEventListener('click', copyJsonToClipboard);
 
   // Edit form
   document.getElementById('editItemForm').addEventListener('submit', (e) => {
@@ -160,19 +144,17 @@ function addItem() {
     category: document.getElementById('itemCategory').value,
     condition: document.getElementById('itemCondition').value,
     images: images,
-    sold: false,
-    interest: 0
+    sold: false
   };
 
   items.unshift(newItem);
-  saveData();
   renderItemsTable();
 
   // Clear form
   document.getElementById('addItemForm').reset();
   document.getElementById('itemImages').value = '';
   document.getElementById('itemImagesPreview').innerHTML = '';
-  alert('הפריט נוסף בהצלחה! ✅');
+  alert('הפריט נוסף! לחץ על "ייצא JSON" או "העתק JSON" כדי לשמור.');
 }
 
 // Render Items Table
@@ -185,6 +167,7 @@ function renderItemsTable() {
   tbody.innerHTML = items.map(item => {
     const category = CATEGORIES[item.category] || CATEGORIES.other;
     const condition = CONDITIONS[item.condition] || item.condition;
+    const imageCount = (item.images || []).length;
 
     return `
       <tr class="${item.sold ? 'sold' : ''}">
@@ -192,8 +175,8 @@ function renderItemsTable() {
         <td>${category.icon} ${category.name}</td>
         <td>₪${item.price}</td>
         <td>${condition}</td>
+        <td>${imageCount > 0 ? `📷 ${imageCount}` : '-'}</td>
         <td>${item.sold ? '✅ נמכר' : '❌'}</td>
-        <td>${item.interest || 0}</td>
         <td class="actions">
           <button class="btn btn-secondary" onclick="editItem(${item.id})">✏️</button>
           <button class="btn btn-secondary" onclick="toggleSold(${item.id})">${item.sold ? '↩️' : '✅'}</button>
@@ -209,8 +192,7 @@ function editItem(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
 
-  // Handle legacy items with single image
-  const images = item.images || (item.image ? [item.image] : []);
+  const images = item.images || [];
 
   document.getElementById('editItemId').value = id;
   document.getElementById('editName').value = item.name;
@@ -239,12 +221,10 @@ function saveEditedItem() {
   item.category = document.getElementById('editCategory').value;
   item.condition = document.getElementById('editCondition').value;
   item.images = images;
-  delete item.image; // Remove legacy field
 
-  saveData();
   renderItemsTable();
   closeEditModal();
-  alert('הפריט עודכן! ✅');
+  alert('הפריט עודכן! לחץ על "ייצא JSON" או "העתק JSON" כדי לשמור.');
 }
 
 function closeEditModal() {
@@ -257,7 +237,6 @@ function toggleSold(id) {
   if (!item) return;
 
   item.sold = !item.sold;
-  saveData();
   renderItemsTable();
 }
 
@@ -266,73 +245,51 @@ function deleteItem(id) {
   if (!confirm('בטוח למחוק את הפריט?')) return;
 
   items = items.filter(i => i.id !== id);
-  saveData();
   renderItemsTable();
 }
 
-// Export Data
-function exportData() {
-  const data = {
+// Generate export data
+function generateExportData() {
+  return {
     items: items,
     settings: settings,
-    exportDate: new Date().toISOString()
+    lastUpdated: new Date().toISOString().split('T')[0]
   };
+}
 
+// Export Data as file
+function exportData() {
+  const data = generateExportData();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = `house-party-sale-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `items.json`;
   a.click();
 
   URL.revokeObjectURL(url);
+  alert('הקובץ הורד! שלח אותו כדי לעדכן את האתר.');
 }
 
-// Import Data
-function importData(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+// Copy JSON to clipboard
+function copyJsonToClipboard() {
+  const data = generateExportData();
+  const jsonString = JSON.stringify(data, null, 2);
 
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    try {
-      const data = JSON.parse(event.target.result);
-
-      if (data.items) {
-        items = data.items;
-        saveData();
-      }
-
-      if (data.settings) {
-        settings = { ...settings, ...data.settings };
-        saveSettings();
-        populateSettingsForm();
-      }
-
-      renderItemsTable();
-      alert('הנתונים יובאו בהצלחה! ✅');
-    } catch (err) {
-      alert('שגיאה בקריאת הקובץ. וודא שזהו קובץ JSON תקין.');
-    }
-  };
-
-  reader.readAsText(file);
-  e.target.value = '';
-}
-
-// Reset Data
-function resetData() {
-  if (!confirm('בטוח לאפס את כל הנתונים לברירת המחדל? כל הפריטים הקיימים יימחקו!')) return;
-  if (!confirm('אתה בטוח? פעולה זו אינה ניתנת לביטול!')) return;
-
-  items = [...SAMPLE_ITEMS];
-  saveData();
-  settings = { ...DEFAULT_SETTINGS };
-  saveSettings();
-  populateSettingsForm();
-  renderItemsTable();
-  alert('הנתונים אופסו! ✅');
+  navigator.clipboard.writeText(jsonString).then(() => {
+    alert('JSON הועתק! הדבק אותו בצ\'אט כדי לעדכן את האתר.');
+  }).catch(err => {
+    console.error('Error copying:', err);
+    // Fallback: show in textarea
+    const textarea = document.createElement('textarea');
+    textarea.value = jsonString;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('JSON הועתק!');
+  });
 }
 
 // Utility: Escape HTML
@@ -344,12 +301,10 @@ function escapeHtml(text) {
 
 // Setup Image Uploads
 function setupImageUploads() {
-  // Add item images upload
   document.getElementById('itemImageFiles').addEventListener('change', (e) => {
     handleMultipleImageUpload(e.target.files, 'itemImages', 'itemImagesPreview');
   });
 
-  // Edit item images upload
   document.getElementById('editImageFiles').addEventListener('change', (e) => {
     handleMultipleImageUpload(e.target.files, 'editImages', 'editImagesPreview', true);
   });
@@ -359,7 +314,6 @@ function setupImageUploads() {
 function handleMultipleImageUpload(files, inputId, previewId, appendToExisting = false) {
   if (!files || files.length === 0) return;
 
-  // Get existing images if appending
   let existingImages = [];
   if (appendToExisting) {
     const existing = document.getElementById(inputId).value;
@@ -372,7 +326,6 @@ function handleMultipleImageUpload(files, inputId, previewId, appendToExisting =
     }
   }
 
-  // Check total count
   if (existingImages.length + files.length > 5) {
     alert('מקסימום 5 תמונות לפריט!');
     return;
@@ -383,7 +336,6 @@ function handleMultipleImageUpload(files, inputId, previewId, appendToExisting =
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
 
-    // Check file size (max 500KB for base64)
     if (file.size > 500 * 1024) {
       alert(`התמונה "${file.name}" גדולה מדי! מקסימום 500KB`);
       continue;

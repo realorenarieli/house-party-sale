@@ -95,15 +95,15 @@
         </form>
       </section>
 
-      <!-- Import/Export Section -->
+      <!-- Export Section -->
       <section class="admin-section">
-        <h2>📤 ייצוא / ייבוא נתונים</h2>
+        <h2>📤 שמירת שינויים</h2>
+        <p style="margin-bottom: 15px; color: var(--gray);">אחרי שתסיים לערוך, לחץ על אחד הכפתורים כדי לשמור:</p>
         <div class="import-export">
-          <button class="btn btn-secondary" id="exportBtn">📤 ייצא JSON</button>
-          <button class="btn btn-secondary" id="importBtn">📥 ייבא JSON</button>
-          <input type="file" id="importFile" accept=".json" style="display: none;">
-          <button class="btn btn-danger" id="resetBtn">🗑️ איפוס לברירת מחדל</button>
+          <button class="btn btn-primary" id="copyJsonBtn">📋 העתק JSON</button>
+          <button class="btn btn-secondary" id="exportBtn">📥 הורד קובץ JSON</button>
         </div>
+        <p style="margin-top: 15px; font-size: 0.9rem; color: var(--gray);">הדבק את ה-JSON בצ'אט או שלח את הקובץ כדי לעדכן את האתר.</p>
       </section>
 
       <!-- Items List Section -->
@@ -116,8 +116,8 @@
               <th>קטגוריה</th>
               <th>מחיר</th>
               <th>מצב</th>
+              <th>תמונות</th>
               <th>נמכר</th>
-              <th>מתעניינים</th>
               <th>פעולות</th>
             </tr>
           </thead>
