@@ -1,5 +1,16 @@
 {
-  "items": [],
+  "items": [
+    {
+      "id": 1,
+      "name": "חתול",
+      "description": "חתול פזית חתולי",
+      "price": 600,
+      "category": "toys",
+      "condition": "new",
+      "images": [],
+      "sold": false
+    }
+  ],
   "settings": {
     "whatsappNumber": "972527251714",
     "partyDate": "20.02.2026",
