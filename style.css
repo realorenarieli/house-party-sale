@@ -149,6 +149,28 @@ body {
   border: 2px solid var(--yellow);
 }
 
+.promo-gif.flip {
+  transform: scaleX(-1);
+}
+
+.retro-spin {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.retro-spin.flip {
+  animation: pulse-flip 2s ease-in-out infinite;
+}
+
+@keyframes pulse-flip {
+  0%, 100% { transform: scaleX(-1) scale(1); }
+  50% { transform: scaleX(-1) scale(1.1); }
+}
+
 @media (max-width: 600px) {
   .header-gif {
     width: 70px;
