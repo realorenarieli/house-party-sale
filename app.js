@@ -112,18 +112,21 @@ function parseImages(imagesStr) {
 function convertGoogleDriveUrl(url) {
   // Handle Google Drive file links
   // Format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-  // Convert to: https://drive.google.com/uc?export=view&id=FILE_ID
+  // Convert to thumbnail URL which is more reliable
 
   const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
   if (driveMatch) {
-    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+    const fileId = driveMatch[1];
+    // Use thumbnail method - more reliable than uc?export
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
   }
 
   // Handle Google Drive open links
   // Format: https://drive.google.com/open?id=FILE_ID
   const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
   if (openMatch) {
-    return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+    const fileId = openMatch[1];
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
   }
 
   // Return as-is if not a Google Drive URL
