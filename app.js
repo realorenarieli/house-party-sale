@@ -8,7 +8,7 @@ let items = [];
 let settings = {
   whatsappNumber: '972527251714',
   partyDate: '20.02.2026',
-  partyTime: 'החל מ-15:00',
+  partyTime: 'החל מ-12:00',
   partyAddress: 'רחוב ג׳ורג׳ אליוט, קומה 3 דירה 3, תל אביב'
 };
 let currentFilter = 'all';
