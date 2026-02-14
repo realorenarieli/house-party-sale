@@ -73,6 +73,29 @@ body {
   height: 15px;
 }
 
+/* Promo Banner */
+.promo-banner {
+  background: var(--yellow);
+  border: 4px solid var(--black);
+  border-top: none;
+  padding: 20px;
+  text-align: center;
+  margin: 0 auto;
+  max-width: 800px;
+}
+
+.promo-banner p:first-child {
+  font-family: 'Heebo', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.promo-banner p:last-child {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
 /* Category Filters */
 .filters {
   padding: 20px;
