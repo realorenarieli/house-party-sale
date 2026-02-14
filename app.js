@@ -1,8 +1,16 @@
 // House Party Sale - Main App
+// Data source: Google Sheets
+
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1rNUlffPgabQZgvDiT9fxU3xcICWS_vc1z4gse2jpjyw/export?format=csv';
 
 // State
 let items = [];
-let settings = {};
+let settings = {
+  whatsappNumber: '972527251714',
+  partyDate: '20.02.2026',
+  partyTime: 'החל מ-15:00',
+  partyAddress: 'רחוב ג׳ורג׳ אליוט, קומה 3 דירה 3, תל אביב'
+};
 let currentFilter = 'all';
 
 // Initialize
@@ -10,27 +18,116 @@ document.addEventListener('DOMContentLoaded', () => {
   initApp();
 });
 
-// Initialize app - fetch data from JSON file
+// Initialize app - fetch data from Google Sheets
 async function initApp() {
   try {
-    const response = await fetch('items.json?' + Date.now()); // Cache bust
-    const data = await response.json();
-
-    items = data.items || [];
-    settings = data.settings || DEFAULT_SETTINGS;
+    const response = await fetch(SHEET_CSV_URL);
+    const csvText = await response.text();
+    items = parseCSV(csvText);
 
     renderFilters();
     renderItems();
     updatePartyInfo();
   } catch (error) {
     console.error('Error loading data:', error);
-    // Fallback to defaults
     items = [];
-    settings = DEFAULT_SETTINGS;
     renderFilters();
     renderItems();
     updatePartyInfo();
   }
+}
+
+// Parse CSV to array of objects
+function parseCSV(csv) {
+  const lines = csv.split('\n');
+  if (lines.length < 2) return [];
+
+  // Get headers from first row
+  const headers = parseCSVLine(lines[0]);
+
+  const result = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    if (values.length < headers.length) continue;
+
+    // Map to our item format
+    // Sheet columns: id, Name, Description, Price, Category, Condition, Images, Sold
+    const item = {
+      id: parseInt(values[0]) || i,
+      name: values[1] || '',
+      description: values[2] || '',
+      price: parseInt(values[3]) || 0,
+      category: (values[4] || 'other').toLowerCase(),
+      condition: (values[5] || 'good').toLowerCase(),
+      images: parseImages(values[6]),
+      sold: (values[7] || '').toUpperCase() === 'TRUE'
+    };
+
+    // Only include items that have a name (skip empty rows)
+    if (item.name && item.name.trim() !== '') {
+      result.push(item);
+    }
+  }
+
+  return result;
+}
+
+// Parse a CSV line handling quoted values
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+// Parse images from comma or newline separated string
+function parseImages(imagesStr) {
+  if (!imagesStr || imagesStr.trim() === '') return [];
+
+  // Split by comma or newline
+  return imagesStr
+    .split(/[,\n]/)
+    .map(url => url.trim())
+    .filter(url => url !== '')
+    .map(url => convertGoogleDriveUrl(url));
+}
+
+// Convert Google Drive sharing URL to direct image URL
+function convertGoogleDriveUrl(url) {
+  // Handle Google Drive file links
+  // Format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+  // Convert to: https://drive.google.com/uc?export=view&id=FILE_ID
+
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
+  if (driveMatch) {
+    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+  }
+
+  // Handle Google Drive open links
+  // Format: https://drive.google.com/open?id=FILE_ID
+  const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+  if (openMatch) {
+    return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+  }
+
+  // Return as-is if not a Google Drive URL
+  return url;
 }
 
 // Update party info in header and footer
@@ -62,11 +159,8 @@ function renderFilters() {
   // Add click handlers
   container.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      // Update active state
       container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-
-      // Filter items
       currentFilter = btn.dataset.category;
       renderItems();
     });
@@ -116,9 +210,7 @@ function renderItems() {
 function renderItemCard(item) {
   const category = CATEGORIES[item.category] || CATEGORIES.other;
   const condition = CONDITIONS[item.condition] || item.condition;
-
-  // Handle both new images array and legacy single image
-  const images = item.images || (item.image ? [item.image] : []);
+  const images = item.images || [];
 
   let galleryHtml;
   if (images.length > 0) {
@@ -199,7 +291,6 @@ function reserveItem(itemId) {
   const item = items.find(i => i.id === itemId);
   if (!item || item.sold) return;
 
-  // Create WhatsApp message
   const message = encodeURIComponent(
     `היי! 👋\nאני מעוניין/ת בפריט מהמכירה:\n\n` +
     `📦 ${item.name}\n` +
@@ -207,13 +298,13 @@ function reserveItem(itemId) {
     `האם הוא עדיין זמין?`
   );
 
-  // Open WhatsApp
   const whatsappUrl = `https://wa.me/${settings.whatsappNumber}?text=${message}`;
   window.open(whatsappUrl, '_blank');
 }
 
 // Utility: Escape HTML
 function escapeHtml(text) {
+  if (!text) return '';
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
