@@ -91,9 +91,20 @@ body {
   margin-bottom: 8px;
 }
 
-.promo-banner p:last-child {
+.promo-banner p:nth-child(2) {
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+.promo-banner .ask-more {
+  margin-top: 12px;
+  padding: 8px 15px;
+  background: var(--black);
+  color: var(--yellow);
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 5px;
+  display: inline-block;
 }
 
 .promo-content {
