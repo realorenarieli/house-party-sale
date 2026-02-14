@@ -19,6 +19,7 @@ const TRANSLATIONS = {
     footerText: 'בואו לקנות! בואו להיפרד! בואו לנקות!',
     marquee: '💥 מחירים משוגעים! 💥 הכל חייב ללכת! 💥 הזדמנות אחרונה! 💥 מחירים משוגעים! 💥 הכל חייב ללכת! 💥 הזדמנות אחרונה! 💥',
     openMaps: '📍 פתח במפות',
+    visitors: '👀 מבקרים:',
     whatsappMsg: 'היי! 👋\nאני מעוניין/ת בפריט מהמכירה:\n\n📦 {name}\n💰 {price} ₪\n\nהאם הוא עדיין זמין?',
     conditions: {
       'new': 'חדש',
@@ -48,6 +49,7 @@ const TRANSLATIONS = {
     footerText: 'Come buy! Come say goodbye! Come clean out!',
     marquee: '💥 Crazy prices! 💥 Everything must go! 💥 Last chance! 💥 Crazy prices! 💥 Everything must go! 💥 Last chance! 💥',
     openMaps: '📍 Open in Maps',
+    visitors: '👀 Visitors:',
     whatsappMsg: "Hi! 👋\nI'm interested in an item from the sale:\n\n📦 {name}\n💰 ₪{price}\n\nIs it still available?",
     conditions: {
       'new': 'New',
@@ -232,6 +234,7 @@ function renderFilters() {
       container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentFilter = btn.dataset.category;
+      trackCategoryClick(currentFilter);
       renderItems();
     });
   });
@@ -363,6 +366,9 @@ function reserveItem(itemId) {
   const item = items.find(i => i.id === itemId);
   if (!item || item.sold) return;
 
+  // Track this item click
+  trackItemClick(itemId, item.name);
+
   const t = TRANSLATIONS[currentLang];
   const messageTemplate = t.whatsappMsg;
   const message = encodeURIComponent(
@@ -416,7 +422,8 @@ function applyLanguage(lang) {
     'emptyStateText': t.noItems,
     'footerText': t.footerText,
     'marqueeText': t.marquee,
-    'openMaps': t.openMaps
+    'openMaps': t.openMaps,
+    'visitorCountLabel': t.visitors
   };
 
   for (const [id, text] of Object.entries(updates)) {
@@ -436,3 +443,106 @@ function getConditionLabel(condition) {
   const conditions = TRANSLATIONS[currentLang].conditions;
   return conditions[condition.toLowerCase()] || condition;
 }
+
+// ============ VISITOR COUNTER & ANALYTICS ============
+
+const COUNTER_NAMESPACE = 'house-party-sale';
+const COUNTER_KEY = 'visitors';
+const ANALYTICS_KEY = 'housePartySaleAnalytics';
+
+// Initialize visitor counter
+async function initVisitorCounter() {
+  try {
+    // Check if this is a new session
+    const hasVisited = sessionStorage.getItem('counted');
+
+    if (!hasVisited) {
+      // Increment counter for new visitor
+      const response = await fetch(`https://api.countapi.xyz/hit/${COUNTER_NAMESPACE}/${COUNTER_KEY}`);
+      const data = await response.json();
+      document.getElementById('visitorCount').textContent = data.value.toLocaleString();
+      sessionStorage.setItem('counted', 'true');
+
+      // Track analytics
+      trackPageView();
+    } else {
+      // Just get current count without incrementing
+      const response = await fetch(`https://api.countapi.xyz/get/${COUNTER_NAMESPACE}/${COUNTER_KEY}`);
+      const data = await response.json();
+      document.getElementById('visitorCount').textContent = data.value.toLocaleString();
+    }
+  } catch (error) {
+    console.error('Counter error:', error);
+    document.getElementById('visitorCount').textContent = '✨';
+  }
+}
+
+// Analytics tracking
+function getAnalytics() {
+  try {
+    return JSON.parse(localStorage.getItem(ANALYTICS_KEY)) || createEmptyAnalytics();
+  } catch {
+    return createEmptyAnalytics();
+  }
+}
+
+function createEmptyAnalytics() {
+  return {
+    pageViews: 0,
+    uniqueVisitors: [],
+    itemClicks: {},
+    categoryClicks: {},
+    languageUsage: { he: 0, en: 0 },
+    dailyViews: {},
+    lastUpdated: null
+  };
+}
+
+function saveAnalytics(analytics) {
+  analytics.lastUpdated = new Date().toISOString();
+  localStorage.setItem(ANALYTICS_KEY, JSON.stringify(analytics));
+}
+
+function getVisitorId() {
+  let visitorId = localStorage.getItem('visitorId');
+  if (!visitorId) {
+    visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('visitorId', visitorId);
+  }
+  return visitorId;
+}
+
+function trackPageView() {
+  const analytics = getAnalytics();
+  const visitorId = getVisitorId();
+  const today = new Date().toISOString().split('T')[0];
+
+  analytics.pageViews++;
+
+  if (!analytics.uniqueVisitors.includes(visitorId)) {
+    analytics.uniqueVisitors.push(visitorId);
+  }
+
+  analytics.dailyViews[today] = (analytics.dailyViews[today] || 0) + 1;
+  analytics.languageUsage[currentLang] = (analytics.languageUsage[currentLang] || 0) + 1;
+
+  saveAnalytics(analytics);
+}
+
+function trackItemClick(itemId, itemName) {
+  const analytics = getAnalytics();
+  const key = `${itemId}_${itemName}`;
+  analytics.itemClicks[key] = (analytics.itemClicks[key] || 0) + 1;
+  saveAnalytics(analytics);
+}
+
+function trackCategoryClick(category) {
+  const analytics = getAnalytics();
+  analytics.categoryClicks[category] = (analytics.categoryClicks[category] || 0) + 1;
+  saveAnalytics(analytics);
+}
+
+// Start visitor counter on page load
+document.addEventListener('DOMContentLoaded', () => {
+  initVisitorCounter();
+});

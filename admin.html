@@ -28,6 +28,46 @@
     <div class="banner"></div>
 
     <div class="admin-container">
+      <!-- Analytics Section -->
+      <section class="admin-section">
+        <h2>📊 סטטיסטיקות</h2>
+        <div class="analytics-dashboard" id="analyticsDashboard">
+          <div class="analytics-card">
+            <h3>סה"כ מבקרים</h3>
+            <div class="value highlight" id="totalVisitors">...</div>
+          </div>
+          <div class="analytics-card">
+            <h3>צפיות בדף</h3>
+            <div class="value" id="pageViews">0</div>
+          </div>
+          <div class="analytics-card">
+            <h3>לחיצות על פריטים</h3>
+            <div class="value" id="totalItemClicks">0</div>
+          </div>
+          <div class="analytics-card">
+            <h3>שפה מועדפת</h3>
+            <div class="value" id="preferredLang">-</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+          <div class="analytics-card">
+            <h3>🔥 פריטים פופולריים</h3>
+            <div class="analytics-list" id="popularItems">
+              <p style="color: var(--gray);">אין נתונים עדיין</p>
+            </div>
+          </div>
+          <div class="analytics-card">
+            <h3>📁 קטגוריות פופולריות</h3>
+            <div class="analytics-list" id="popularCategories">
+              <p style="color: var(--gray);">אין נתונים עדיין</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="refreshAnalytics()" style="margin-top: 15px;">🔄 רענן נתונים</button>
+      </section>
+
       <!-- Settings Section -->
       <section class="admin-section">
         <h2>⚙️ הגדרות</h2>

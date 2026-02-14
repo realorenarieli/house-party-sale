@@ -52,6 +52,7 @@ async function authenticate() {
   renderItemsTable();
   setupEventListeners();
   setupImageUploads();
+  loadAnalytics();
 }
 
 // Load data from JSON file
@@ -384,4 +385,121 @@ function removeImage(previewId, index) {
   } catch (e) {
     console.error('Error removing image:', e);
   }
+}
+
+// ============ ANALYTICS ============
+
+const COUNTER_NAMESPACE = 'house-party-sale';
+const COUNTER_KEY = 'visitors';
+const ANALYTICS_KEY = 'housePartySaleAnalytics';
+
+async function loadAnalytics() {
+  // Load visitor count from CountAPI
+  try {
+    const response = await fetch(`https://api.countapi.xyz/get/${COUNTER_NAMESPACE}/${COUNTER_KEY}`);
+    const data = await response.json();
+    document.getElementById('totalVisitors').textContent = data.value ? data.value.toLocaleString() : '0';
+  } catch (error) {
+    document.getElementById('totalVisitors').textContent = '-';
+  }
+
+  // Load local analytics
+  const analytics = getAnalytics();
+  renderAnalytics(analytics);
+}
+
+function getAnalytics() {
+  try {
+    return JSON.parse(localStorage.getItem(ANALYTICS_KEY)) || createEmptyAnalytics();
+  } catch {
+    return createEmptyAnalytics();
+  }
+}
+
+function createEmptyAnalytics() {
+  return {
+    pageViews: 0,
+    uniqueVisitors: [],
+    itemClicks: {},
+    categoryClicks: {},
+    languageUsage: { he: 0, en: 0 },
+    dailyViews: {},
+    lastUpdated: null
+  };
+}
+
+function renderAnalytics(analytics) {
+  // Page views
+  document.getElementById('pageViews').textContent = analytics.pageViews.toLocaleString();
+
+  // Total item clicks
+  const totalClicks = Object.values(analytics.itemClicks).reduce((a, b) => a + b, 0);
+  document.getElementById('totalItemClicks').textContent = totalClicks.toLocaleString();
+
+  // Preferred language
+  const heLang = analytics.languageUsage.he || 0;
+  const enLang = analytics.languageUsage.en || 0;
+  if (heLang + enLang > 0) {
+    document.getElementById('preferredLang').textContent = heLang >= enLang ? '🇮🇱 עברית' : '🇬🇧 English';
+  }
+
+  // Popular items
+  renderPopularItems(analytics.itemClicks);
+
+  // Popular categories
+  renderPopularCategories(analytics.categoryClicks);
+}
+
+function renderPopularItems(itemClicks) {
+  const container = document.getElementById('popularItems');
+  const sorted = Object.entries(itemClicks)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<p style="color: var(--gray);">אין נתונים עדיין</p>';
+    return;
+  }
+
+  container.innerHTML = sorted.map(([key, count]) => {
+    const name = key.split('_').slice(1).join('_') || key;
+    return `<div class="analytics-list-item">
+      <span>${escapeHtml(name)}</span>
+      <span><strong>${count}</strong> לחיצות</span>
+    </div>`;
+  }).join('');
+}
+
+function renderPopularCategories(categoryClicks) {
+  const container = document.getElementById('popularCategories');
+  const sorted = Object.entries(categoryClicks)
+    .filter(([cat]) => cat !== 'all')
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<p style="color: var(--gray);">אין נתונים עדיין</p>';
+    return;
+  }
+
+  const categoryNames = {
+    'furniture': '🪑 ריהוט',
+    'kitchen': '🍳 מטבח',
+    'electronic': '📺 אלקטרוניקה',
+    'vintage': '🏺 וינטג׳',
+    'other': '📦 שונות',
+    'all': 'הכל'
+  };
+
+  container.innerHTML = sorted.map(([cat, count]) => {
+    const name = categoryNames[cat] || cat;
+    return `<div class="analytics-list-item">
+      <span>${name}</span>
+      <span><strong>${count}</strong> צפיות</span>
+    </div>`;
+  }).join('');
+}
+
+function refreshAnalytics() {
+  loadAnalytics();
 }
