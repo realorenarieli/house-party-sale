@@ -22,7 +22,6 @@ body {
   font-family: 'Assistant', 'Heebo', Arial, sans-serif;
   background-color: var(--paper);
   color: var(--black);
-  direction: rtl;
   line-height: 1.4;
   min-height: 100vh;
 }
@@ -34,6 +33,42 @@ body {
   padding: 20px;
   text-align: center;
   border-bottom: 8px solid var(--red);
+  position: relative;
+}
+
+/* Language Selector */
+.lang-selector-wrapper {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+[dir="ltr"] .lang-selector-wrapper {
+  left: auto;
+  right: 10px;
+}
+
+.lang-selector {
+  font-family: 'Assistant', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border: 2px solid var(--yellow);
+  border-radius: 4px;
+  background: var(--black);
+  color: var(--white);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lang-selector:hover {
+  background: var(--yellow);
+  color: var(--black);
+}
+
+.lang-selector:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--yellow);
 }
 
 .header h1 {

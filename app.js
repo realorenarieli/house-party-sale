@@ -3,19 +3,84 @@
 
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1rNUlffPgabQZgvDiT9fxU3xcICWS_vc1z4gse2jpjyw/export?format=csv';
 
+// Translations
+const TRANSLATIONS = {
+  he: {
+    title: '🌟 לא נכנס במזוודה - המכירה הגדולה! 🌟',
+    subtitle: 'הכל חייב ללכת! מחירים משוגעים!',
+    promoTitle: '🎁 יש עוד המון פריטים שלא מופיעים כאן! 🎁',
+    promoText: 'בואו ביום המכירה לגלות עוד אוצרות במחירים מטורפים!',
+    askMore: '📸 רוצים עוד תמונות? מחפשים משהו ספציפי? שלחו הודעה ונשמח לעזור!',
+    categories: '★ קטגוריות ★',
+    all: 'הכל',
+    noItems: 'אין פריטים בקטגוריה זו',
+    reserve: 'שריין עכשיו!',
+    sold: 'נמכר',
+    footerText: 'בואו לקנות! בואו להיפרד! בואו לנקות!',
+    marquee: '💥 מחירים משוגעים! 💥 הכל חייב ללכת! 💥 הזדמנות אחרונה! 💥 מחירים משוגעים! 💥 הכל חייב ללכת! 💥 הזדמנות אחרונה! 💥',
+    openMaps: '📍 פתח במפות',
+    whatsappMsg: 'היי! 👋\nאני מעוניין/ת בפריט מהמכירה:\n\n📦 {name}\n💰 {price} ₪\n\nהאם הוא עדיין זמין?',
+    conditions: {
+      'new': 'חדש',
+      'like new': 'כמו חדש',
+      'slightly used': 'משומש קלות',
+      'used': 'משומש'
+    },
+    categories: {
+      'furniture': 'ריהוט',
+      'kitchen': 'מטבח',
+      'electronic': 'אלקטרוניקה',
+      'vintage': 'וינטג׳',
+      'other': 'שונות'
+    }
+  },
+  en: {
+    title: '🌟 Moving Sale - Everything Must Go! 🌟',
+    subtitle: 'Crazy prices! Everything must go!',
+    promoTitle: '🎁 Many more items not shown here! 🎁',
+    promoText: 'Come to the sale to discover more treasures at amazing prices!',
+    askMore: '📸 Want more photos? Looking for something specific? Send us a message!',
+    categories: '★ Categories ★',
+    all: 'All',
+    noItems: 'No items in this category',
+    reserve: 'Reserve Now!',
+    sold: 'Sold',
+    footerText: 'Come buy! Come say goodbye! Come clean out!',
+    marquee: '💥 Crazy prices! 💥 Everything must go! 💥 Last chance! 💥 Crazy prices! 💥 Everything must go! 💥 Last chance! 💥',
+    openMaps: '📍 Open in Maps',
+    whatsappMsg: "Hi! 👋\nI'm interested in an item from the sale:\n\n📦 {name}\n💰 ₪{price}\n\nIs it still available?",
+    conditions: {
+      'new': 'New',
+      'like new': 'Like New',
+      'slightly used': 'Slightly Used',
+      'used': 'Used'
+    },
+    categories: {
+      'furniture': 'Furniture',
+      'kitchen': 'Kitchen',
+      'electronic': 'Electronics',
+      'vintage': 'Vintage',
+      'other': 'Other'
+    }
+  }
+};
+
 // State
 let items = [];
 let settings = {
   whatsappNumber: '972527251714',
   partyDate: '20.02.2026',
-  partyTime: 'החל מ-12:00',
-  partyAddress: 'רחוב ג׳ורג׳ אליוט, קומה 3 דירה 3, תל אביב'
+  partyTime: 'From 12:00 / החל מ-12:00',
+  partyAddress: 'George Eliot St, Floor 3 Apt 3, Tel Aviv'
 };
 let currentFilter = 'all';
+let currentLang = localStorage.getItem('lang') || 'he';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   initApp();
+  setupLanguageSelector();
+  applyLanguage(currentLang);
 });
 
 // Initialize app - fetch data from Google Sheets
@@ -151,10 +216,12 @@ function renderFilters() {
   const container = document.getElementById('filterButtons');
   if (!container) return;
 
-  let html = `<button class="filter-btn active" data-category="all">הכל</button>`;
+  const t = TRANSLATIONS[currentLang];
+  let html = `<button class="filter-btn active" data-category="all">${t.all}</button>`;
 
   Object.values(CATEGORIES).forEach(cat => {
-    html += `<button class="filter-btn" data-category="${cat.id}">${cat.icon} ${cat.name}</button>`;
+    const categoryName = t.categories[cat.id] || cat.name;
+    html += `<button class="filter-btn" data-category="${cat.id}">${cat.icon} ${categoryName}</button>`;
   });
 
   container.innerHTML = html;
@@ -212,8 +279,10 @@ function renderItems() {
 // Render single item card
 function renderItemCard(item) {
   const category = CATEGORIES[item.category] || CATEGORIES.other;
-  const condition = CONDITIONS[item.condition] || item.condition;
+  const condition = getConditionLabel(item.condition);
   const images = item.images || [];
+  const t = TRANSLATIONS[currentLang];
+  const categoryName = t.categories[item.category] || category.name;
 
   let galleryHtml;
   if (images.length > 0) {
@@ -241,14 +310,14 @@ function renderItemCard(item) {
     <article class="item-card ${item.sold ? 'sold' : ''}">
       ${galleryHtml}
       <div class="item-content">
-        <span class="item-category">${category.icon} ${category.name}</span>
+        <span class="item-category">${category.icon} ${categoryName}</span>
         <h3 class="item-name">${escapeHtml(item.name)}</h3>
         <p class="item-description">${escapeHtml(item.description)}</p>
         <p class="item-condition">${condition}</p>
         <div class="item-price">${item.price}</div>
       </div>
       <button class="reserve-btn" data-item-id="${item.id}" ${item.sold ? 'disabled' : ''}>
-        ${item.sold ? 'נמכר' : 'שריין עכשיו!'}
+        ${item.sold ? t.sold : t.reserve}
       </button>
     </article>
   `;
@@ -294,11 +363,12 @@ function reserveItem(itemId) {
   const item = items.find(i => i.id === itemId);
   if (!item || item.sold) return;
 
+  const t = TRANSLATIONS[currentLang];
+  const messageTemplate = t.whatsappMsg;
   const message = encodeURIComponent(
-    `היי! 👋\nאני מעוניין/ת בפריט מהמכירה:\n\n` +
-    `📦 ${item.name}\n` +
-    `💰 ${item.price} ₪\n\n` +
-    `האם הוא עדיין זמין?`
+    messageTemplate
+      .replace('{name}', item.name)
+      .replace('{price}', item.price)
   );
 
   const whatsappUrl = `https://wa.me/${settings.whatsappNumber}?text=${message}`;
@@ -311,4 +381,58 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Language functions
+function setupLanguageSelector() {
+  const selector = document.getElementById('langSelector');
+  if (selector) {
+    selector.value = currentLang;
+    selector.addEventListener('change', (e) => {
+      currentLang = e.target.value;
+      localStorage.setItem('lang', currentLang);
+      applyLanguage(currentLang);
+      renderItems(); // Re-render items with new language
+    });
+  }
+}
+
+function applyLanguage(lang) {
+  const t = TRANSLATIONS[lang];
+  const isRTL = lang === 'he';
+
+  // Update document direction
+  document.documentElement.lang = lang;
+  document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+
+  // Update text content
+  const updates = {
+    'mainTitle': t.title,
+    'subtitle': t.subtitle,
+    'promoTitle': t.promoTitle,
+    'promoText': t.promoText,
+    'askMore': t.askMore,
+    'filtersTitle': t.categories,
+    'emptyStateText': t.noItems,
+    'footerText': t.footerText,
+    'marqueeText': t.marquee,
+    'openMaps': t.openMaps
+  };
+
+  for (const [id, text] of Object.entries(updates)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  // Update filter buttons
+  renderFilters();
+}
+
+function getTranslation(key) {
+  return TRANSLATIONS[currentLang][key] || key;
+}
+
+function getConditionLabel(condition) {
+  const conditions = TRANSLATIONS[currentLang].conditions;
+  return conditions[condition.toLowerCase()] || condition;
 }
